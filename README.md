@@ -1,1 +1,4 @@
-# news-etl-ai-pipeline
+pip install apache-airflow pandas newsapi-python
+
+airflow db migrate
+airflow standalone
