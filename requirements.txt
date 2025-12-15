@@ -1,4 +1,9 @@
-newsapi-python
-python-dotenv
-pandas
-apache-airflow
+# Core Dependencies
+# Using latest Airflow version compatible with Python 3.13
+apache-airflow>=3.1.0
+pandas>=2.1.0
+newsapi-python==0.2.7
+python-dotenv==1.0.0
+
+# Additional utilities
+requests>=2.31.0
