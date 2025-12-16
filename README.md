@@ -255,6 +255,7 @@ airflow standalone
 **Via Command Line (Docker):**
 ```bash
 docker-compose exec airflow airflow dags trigger news_etl_pipeline
+docker compose exec airflow airflow dags unpause news_etl_pipeline
 ```
 
 **Via Command Line (Local):**

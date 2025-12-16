@@ -44,14 +44,11 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./src:/opt/airflow/src
       - ./config:/opt/airflow/config
-      - ./create_admin.py:/opt/airflow/create_admin.py
       - airflow_data:/opt/airflow
     networks:
       - etl-network
     command: >
       bash -c "
-        airflow db migrate &&
-        python /opt/airflow/create_admin.py &&
         python /opt/airflow/src/init_db.py &&
         airflow standalone
       "
