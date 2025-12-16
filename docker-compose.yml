@@ -1,0 +1,67 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:18-alpine
+    container_name: news-etl-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: news_etl_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d news_etl_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - etl-network
+
+  # Airflow Standalone
+  airflow:
+    build: .
+    container_name: news-etl-airflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      # Your ETL database credentials
+      NEWS_API_KEY: ${NEWS_API_KEY}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: news_etl_db
+      DB_USER: airflow
+      DB_PASSWORD: airflow
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./config:/opt/airflow/config
+      - ./create_admin.py:/opt/airflow/create_admin.py
+      - airflow_data:/opt/airflow
+    networks:
+      - etl-network
+    command: >
+      bash -c "
+        airflow db migrate &&
+        python /opt/airflow/create_admin.py &&
+        python /opt/airflow/src/init_db.py &&
+        airflow standalone
+      "
+
+volumes:
+  postgres_data:
+    driver: local
+  airflow_data:
+    driver: local
+
+networks:
+  etl-network:
+    driver: bridge

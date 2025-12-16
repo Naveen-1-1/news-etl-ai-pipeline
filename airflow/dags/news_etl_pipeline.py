@@ -4,14 +4,25 @@ Airflow DAG for News ETL Pipeline
 This DAG orchestrates the Extract-Transform-Load process for news articles:
 1. Extract: Fetch news articles from NewsAPI
 2. Transform: Clean and structure the data
-3. Load: Store in SQLite database
+3. Load: Store in PostgreSQL database
 """
 import sys
 import os
 from datetime import datetime, timedelta
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+# Set up Python path for imports
+# Docker: dags at /opt/airflow/dags, src at /opt/airflow/src
+# Local: dags at /project/airflow/dags, src at /project/src
+dag_file_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Go up from /opt/airflow/dags or /project/airflow/dags to get to base directory
+if '/opt/airflow/' in dag_file_dir:
+    # Running in Docker - add /opt/airflow to path
+    sys.path.insert(0, '/opt/airflow')
+else:
+    # Running locally - go up two levels
+    project_root = os.path.dirname(os.path.dirname(dag_file_dir))
+    sys.path.insert(0, project_root)
 
 from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
@@ -36,10 +47,10 @@ default_args = {
 dag = DAG(
     dag_id=DAG_ID,
     default_args=default_args,
-    description='ETL pipeline to extract AI news from NewsAPI and store in SQLite',
+    description='ETL pipeline to extract AI news from NewsAPI and store in PostgreSQL',
     schedule=DAG_SCHEDULE,
     catchup=False,
-    tags=['news', 'etl', 'newsapi'],
+    tags=['news', 'etl', 'newsapi', 'docker'],
 )
 
 # Define tasks

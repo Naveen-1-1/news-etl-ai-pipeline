@@ -5,6 +5,7 @@ An automated ETL (Extract, Transform, Load) pipeline built with Apache Airflow t
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Apache Airflow](https://img.shields.io/badge/Airflow-3.1+-green.svg)](https://airflow.apache.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -16,9 +17,11 @@ This project demonstrates a production-ready data engineering workflow that:
 - **Transforms** raw data into structured, clean format
 - **Loads** processed data into a PostgreSQL database with duplicate handling
 - **Orchestrates** the entire workflow using Apache Airflow with proper error handling and logging
+- **Containerized** with Docker for easy deployment and portability
 
 ### Key Features
 
+✅ **Docker-ready** - One-command deployment with docker-compose  
 ✅ Production-grade PostgreSQL database with indexing and constraints  
 ✅ Automatic duplicate detection and handling (ON CONFLICT)  
 ✅ Modular architecture with separation of concerns (Extract, Transform, Load)  
@@ -39,16 +42,36 @@ Extract (NewsAPI)  →  Transform (Pandas)  →  Load (PostgreSQL)
   Raw Articles        Cleaned Data       Database (w/ deduplication)
 ```
 
+### Docker Architecture
+
+```
+┌─────────────────────────────────────┐
+│     Docker Compose Network          │
+│                                     │
+│  ┌─────────────┐   ┌──────────────┐│
+│  │  Airflow    │───│  PostgreSQL  ││
+│  │  Container  │   │   Container  ││
+│  │  (Port 8080)│   │  (Port 5432) ││
+│  └─────────────┘   └──────────────┘│
+└─────────────────────────────────────┘
+```
+
 ### Project Structure
 
 ```
 news-etl-ai-pipeline/
 ├── README.md                          # Project documentation
 ├── requirements.txt                   # Python dependencies
+├── Dockerfile                         # Docker image definition
+├── docker-compose.yml                 # Multi-container orchestration
 ├── .env.example                       # Environment variable template
+├── .env.docker                        # Docker-specific env template
+├── .dockerignore                      # Docker build exclusions
 ├── .gitignore                         # Git ignore rules
+├── create_admin.py                    # Admin user creation script
 │
 ├── config/
+│   ├── __init__.py
 │   └── config.py                      # Centralized configuration
 │
 ├── src/
@@ -72,6 +95,7 @@ news-etl-ai-pipeline/
 | **Apache Airflow 3.1+** | Workflow orchestration and scheduling |
 | **Python 3.13** | Core programming language |
 | **PostgreSQL 18** | Production-grade relational database |
+| **Docker & Docker Compose** | Containerization and deployment |
 | **SQLAlchemy** | Database ORM and connection management |
 | **Pandas** | Data transformation and manipulation |
 | **NewsAPI** | News article data source |
@@ -81,14 +105,56 @@ news-etl-ai-pipeline/
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Option 1: Docker Setup (Recommended - 2 minutes) 🐳
 
+**Prerequisites:**
+- Docker Desktop installed
+- NewsAPI key
+
+**Steps:**
+```bash
+# 1. Clone repository
+git clone https://github.com/yourusername/news-etl-ai-pipeline.git
+cd news-etl-ai-pipeline
+
+# 2. Set up environment variables
+cp .env.docker .env
+nano .env  # Add your NewsAPI key
+
+# 3. Start everything with Docker Compose
+docker-compose up -d
+
+# 4. Check logs
+docker-compose logs -f airflow
+
+# 5. Access Airflow UI
+# Open http://localhost:8080
+# Login: username=admin, password=admin
+```
+
+**That's it!** PostgreSQL and Airflow are now running in containers.
+
+**To stop:**
+```bash
+docker-compose down
+```
+
+**To restart:**
+```bash
+docker-compose up -d
+```
+
+---
+
+### Option 2: Local Setup (Manual)
+
+**Prerequisites:**
 - Python 3.11 or higher (tested with Python 3.13)
 - PostgreSQL 18
 - pip (Python package manager)
 - NewsAPI key (get free at [newsapi.org](https://newsapi.org))
 
-### Step 1: Install PostgreSQL
+**Step 1: Install PostgreSQL**
 
 **macOS (using Homebrew):**
 ```bash
@@ -107,7 +173,7 @@ sudo apt install postgresql postgresql-contrib
 sudo systemctl start postgresql
 ```
 
-### Step 2: Create Database
+**Step 2: Create Database**
 
 ```bash
 # Create database (using your system username as superuser)
@@ -117,7 +183,7 @@ createdb news_etl_db
 psql -l | grep news_etl_db
 ```
 
-### Step 3: Set Up Project
+**Step 3: Set Up Project**
 
 ```bash
 # 1. Clone the repository
@@ -166,7 +232,7 @@ airflow standalone
 
 **Save the admin password** printed in the console!
 
-### Step 4: Access Airflow UI
+**Step 4: Access Airflow UI**
 
 1. Open browser to `http://localhost:8080`
 2. Login with username: `admin` and password from console
@@ -186,14 +252,31 @@ airflow standalone
 - Click play button to trigger manually
 - Monitor execution in Graph or Tree view
 
-**Via Command Line:**
+**Via Command Line (Docker):**
+```bash
+docker-compose exec airflow airflow dags trigger news_etl_pipeline
+```
+
+**Via Command Line (Local):**
 ```bash
 airflow dags trigger news_etl_pipeline
 ```
 
 ### Monitoring
 
-**Check pipeline status:**
+**Docker:**
+```bash
+# View Airflow logs
+docker-compose logs -f airflow
+
+# View PostgreSQL logs
+docker-compose logs -f postgres
+
+# Access PostgreSQL shell
+docker-compose exec postgres psql -U airflow -d news_etl_db
+```
+
+**Local:**
 ```bash
 # View all DAGs
 airflow dags list
@@ -202,18 +285,23 @@ airflow dags list
 airflow dags list-runs -d news_etl_pipeline
 ```
 
-**Query the database:**
+### Querying the Database
+
+**Docker:**
 ```bash
-psql -d news_etl_db
+docker-compose exec postgres psql -U airflow -d news_etl_db
 
 # In PostgreSQL prompt:
 SELECT COUNT(*) FROM news_table;
+SELECT "News Title", "Source" FROM news_table LIMIT 5;
+\q
+```
 
-SELECT "News Title", "Source", "Date Published" 
-FROM news_table 
-ORDER BY "Date Published" DESC 
-LIMIT 5;
+**Local:**
+```bash
+psql -d news_etl_db
 
+# Run your queries
 \q
 ```
 
@@ -235,12 +323,45 @@ ORDER BY "Date Published" DESC;
 SELECT "News Title", "Source" 
 FROM news_table 
 WHERE "Content" ILIKE '%machine learning%';
+```
 
--- Check for duplicates (should return 0)
-SELECT "URL", COUNT(*) 
-FROM news_table 
-GROUP BY "URL" 
-HAVING COUNT(*) > 1;
+---
+
+## 🐳 Docker Commands
+
+### Essential Commands
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Restart services
+docker-compose restart
+
+# Rebuild after code changes
+docker-compose up -d --build
+
+# Remove everything (including volumes)
+docker-compose down -v
+```
+
+### Accessing Containers
+
+```bash
+# Airflow shell
+docker-compose exec airflow bash
+
+# PostgreSQL shell
+docker-compose exec postgres psql -U airflow -d news_etl_db
+
+# View Airflow logs
+docker-compose exec airflow tail -f /opt/airflow/logs/scheduler/latest/*.log
 ```
 
 ---
@@ -288,16 +409,59 @@ This ensures:
 - Database connection settings
 - Retry logic
 
-### Environment Variables (`.env`)
-- PostgreSQL credentials
-- NewsAPI key
-- Database host/port
+### Environment Variables
+
+**For Docker (`.env`):**
+```env
+NEWS_API_KEY=your_key_here
+```
+
+**For Local Development (`.env`):**
+```env
+NEWS_API_KEY=your_key_here
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=news_etl_db
+DB_USER=your_username
+DB_PASSWORD=
+```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### PostgreSQL Connection Error
+### Docker Issues
+
+**Container won't start:**
+```bash
+# Check logs
+docker-compose logs airflow
+docker-compose logs postgres
+
+# Rebuild containers
+docker-compose down
+docker-compose up -d --build
+```
+
+**Port already in use:**
+```bash
+# Check what's using port 8080
+lsof -i :8080
+
+# Kill the process or change port in docker-compose.yml
+```
+
+**Database connection issues:**
+```bash
+# Verify PostgreSQL is healthy
+docker-compose ps
+
+# Should show postgres as "healthy"
+```
+
+### Local Setup Issues
+
+**PostgreSQL Connection Error:**
 ```bash
 # Check PostgreSQL is running
 brew services list | grep postgresql  # macOS
@@ -305,33 +469,21 @@ sudo systemctl status postgresql      # Linux
 
 # Test connection
 psql -d news_etl_db
-
-# Check credentials in .env file
-cat .env
 ```
 
-### Module Import Errors
+**Module Import Errors:**
 ```bash
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### DAG Not Showing in UI
+**DAG Not Showing:**
 ```bash
 # Verify AIRFLOW_HOME
 echo $AIRFLOW_HOME
+export AIRFLOW_HOME=$(pwd)/airflow
 
-# Should output: /path/to/news-etl-ai-pipeline/airflow
-# If not set: export AIRFLOW_HOME=$(pwd)/airflow
-
-# Restart Airflow (Ctrl+C then restart)
-airflow standalone
-```
-
-### Database Table Not Found
-```bash
-# Reinitialize database
-python src/init_db.py
+# Restart Airflow
 ```
 
 ---

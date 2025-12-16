@@ -8,8 +8,10 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import sys
 import os
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+# Add parent directory to path for imports (works in both Docker and local)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
 
 from config.config import DATABASE_URI, DB_TABLE_NAME
 
