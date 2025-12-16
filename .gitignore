@@ -26,7 +26,7 @@ env/
 ENV/
 .venv
 
-# Environment Variables
+# Environment Variables (contains DB credentials and API keys)
 .env
 
 # Airflow
@@ -36,7 +36,7 @@ airflow/airflow.cfg
 airflow/webserver_config.py
 airflow/standalone_admin_password.txt
 airflow/*.json.generated
-airflow/dags/__pycache__
+airflow/dags/__pycache__/
 
 # Database
 *.sqlite

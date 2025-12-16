@@ -3,6 +3,7 @@ Transform module - Clean and transform news data
 """
 import pandas as pd
 import logging
+from io import StringIO
 
 
 def clean_author_column(text):
@@ -28,7 +29,7 @@ def transform_news_data(**kwargs):
     Transformations:
     - Extract relevant fields (source, author, title, url, date, content)
     - Clean author names
-    - Format dates
+    - Convert dates to datetime objects (for PostgreSQL TIMESTAMP)
     
     Args:
         **kwargs: Airflow context including task_instance for XCom
@@ -62,16 +63,16 @@ def transform_news_data(**kwargs):
         columns=["Source", "Author Name", "News Title", "URL", "Date Published", "Content"]
     )
     
-    # Transform date format
-    df["Date Published"] = pd.to_datetime(df["Date Published"]).dt.strftime('%Y-%m-%d %H:%M:%S')
+    # Convert date to datetime object (keep as datetime, don't convert to string!)
+    df["Date Published"] = pd.to_datetime(df["Date Published"])
     
     # Clean author names
     df["Author Name"] = df["Author Name"].apply(clean_author_column)
     
     logging.info(f"Transformation complete. Processed {len(df)} articles")
     
-    # Push transformed data to XCom
+    # Push transformed data to XCom (use orient='records' to preserve datetime)
     kwargs['task_instance'].xcom_push(
         key='transform_df', 
-        value=df.to_json()
+        value=df.to_json(date_format='iso', orient='records')
     )

@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from src.extract import extract_news_data
 from src.transform import transform_news_data
 from src.load import load_news_data
